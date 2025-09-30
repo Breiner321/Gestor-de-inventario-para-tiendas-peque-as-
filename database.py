@@ -1,6 +1,6 @@
 import sqlite3
 from product import Product
-#hola
+
 class InventoryDatabase:
     def __init__(self, db_name="inventory.db"):
         # Solo el nombre -> se crea en la carpeta actual del proyecto
@@ -30,9 +30,9 @@ class InventoryDatabase:
         with sqlite3.connect(self.db_name) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT OR REPLACE INTO products 
-                (code, name, description, quantity, unit_price, warehouse, last_update)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO products
+            (code, name, description, quantity, unit_price, warehouse, last_update)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
                 product.code, product.name, product.description,
                 product.quantity, product.unit_price,
@@ -46,8 +46,8 @@ class InventoryDatabase:
         with sqlite3.connect(self.db_name) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT code, name, description, quantity, unit_price, warehouse, last_update 
-                FROM products
+            SELECT code, name, description, quantity, unit_price, warehouse, last_update
+            FROM products
             """)
             rows = cursor.fetchall()
             for row in rows:
@@ -62,3 +62,35 @@ class InventoryDatabase:
                     last_update or ""
                 ))
         return products
+
+    def update_product(self, updated_product):
+        """Actualiza un producto existente"""
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            UPDATE products
+            SET name = ?, description = ?, quantity = ?, unit_price = ?, warehouse = ?, last_update = ?
+            WHERE code = ?
+            """, (
+                updated_product.name,
+                updated_product.description,
+                updated_product.quantity,
+                updated_product.unit_price,
+                updated_product.warehouse,
+                updated_product.last_update,
+                updated_product.code
+            ))
+            if cursor.rowcount == 0:
+                raise ValueError(f"Producto con código {updated_product.code} no encontrado")
+            conn.commit()
+
+    def delete_product(self, code):
+        """Elimina un producto por código"""
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            DELETE FROM products WHERE code = ?
+            """, (code,))
+            if cursor.rowcount == 0:
+                raise ValueError(f"Producto con código {code} no encontrado")
+            conn.commit()
