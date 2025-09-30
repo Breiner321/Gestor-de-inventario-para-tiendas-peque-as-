@@ -3,6 +3,7 @@ from tkinter import messagebox, ttk
 import datetime
 from database import InventoryDatabase
 from product import Product
+#Hola 
 
 class InventoryApp(tk.Tk):
     def __init__(self):
