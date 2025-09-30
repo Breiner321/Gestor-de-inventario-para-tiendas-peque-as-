@@ -1,6 +1,6 @@
 import sqlite3
 from product import Product
-
+#hola
 class InventoryDatabase:
     def __init__(self, db_name="inventory.db"):
         # Solo el nombre -> se crea en la carpeta actual del proyecto
