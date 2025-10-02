@@ -82,7 +82,7 @@ class InventoryApp(tk.Tk):
                 messagebox.showerror("Error", str(e))
 
         tk.Button(win, text="Save", command=save).grid(row=len(labels), column=0, columnspan=2, pady=10)
-
+#Homosexual
     def on_double_click(self, event):
         item_id = self.tree.identify_row(event.y)
         column = self.tree.identify_column(event.x)
