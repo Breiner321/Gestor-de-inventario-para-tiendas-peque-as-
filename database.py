@@ -1,5 +1,7 @@
 import sqlite3
+import csv
 from product import Product
+import datetime
 
 class InventoryDatabase:
     def __init__(self, db_name="inventory.db"):
@@ -76,3 +78,32 @@ class InventoryDatabase:
             if cursor.rowcount == 0:
                 raise ValueError(f"Producto con código {code} no encontrado")
             conn.commit()
+
+    def export_to_csv(self, file_path):
+        products = self.load()
+        with open(file_path, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['code', 'name', 'description', 'quantity', 'unit_price', 'warehouse', 'last_update'])
+            for p in products:
+                writer.writerow([
+                    p.code, p.name, p.description,
+                    p.quantity, p.unit_price, p.warehouse, p.last_update
+                ])
+
+    def import_from_csv(self, file_path):
+        with open(file_path, mode='r', newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    product = Product(
+                        row['code'],
+                        row['name'],
+                        row.get('description', ''),
+                        int(row['quantity']),
+                        float(row['unit_price']),
+                        row.get('warehouse', ''),
+                        row.get('last_update', datetime.datetime.now().strftime("%d/%m/%Y"))
+                    )
+                    self.add_product(product)
+                except Exception as e:
+                    print(f"Error importando producto {row.get('code', '')}: {e}")
