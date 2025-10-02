@@ -3,36 +3,43 @@ from tkinter import messagebox, ttk
 import datetime
 from database import InventoryDatabase
 from product import Product
+import re
 
 class InventoryApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Inventory Manager")
-        self.geometry("750x400")
+        self.title("Gestos de inventarios")
+        width = self.winfo_screenwidth()
+        height = self.winfo_screenheight()
+        self.geometry(f"{width}x{height}")
+        self.minsize(800, 400)
         self.db = InventoryDatabase()
         self.create_widgets()
         self.refresh_table()
 
     def create_widgets(self):
-        columns = ("last_update", "code", "name", "description", "unit_price", "quantity", "warehouse", "edit")
+        columns = (
+            "last_update", "code", "name", "description", "unit_price",
+            "quantity", "warehouse", "edit", "delete"
+        )
         self.tree = ttk.Treeview(self, columns=columns, show="headings")
-        
-        self.tree.heading("last_update", text="Last Update")
-        self.tree.heading("code", text="ID")
-        self.tree.heading("name", text="Name")
-        self.tree.heading("description", text="Description")
-        self.tree.heading("unit_price", text="Unit Price")
-        self.tree.heading("quantity", text="Quantity")
-        self.tree.heading("warehouse", text="Warehouse")
-        self.tree.heading("edit", text="Edit")
-        self.tree.column("edit", width=50, anchor="center")
-
+        for col in columns:
+            self.tree.heading(col, text=col.replace('_', ' ').title())
+            self.tree.column(col, minwidth=80, width=130, anchor="center")
+        self.tree.column("edit", width=70, minwidth=50, anchor="center")
+        self.tree.column("delete", width=70, minwidth=50, anchor="center")
         self.tree.bind("<Double-1>", self.on_double_click)
-        self.tree.pack(fill="both", expand=True)
+
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscroll=scrollbar.set)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
         btn_add = tk.Button(self, text="Add Product", command=self.add_product_window)
-        btn_add.pack(pady=10)
-
+        btn_add.grid(row=1, column=0, columnspan=2, pady=10, sticky="ew")
 
     def refresh_table(self):
         for row in self.tree.get_children():
@@ -41,14 +48,15 @@ class InventoryApp(tk.Tk):
             products = self.db.load()
             for p in products:
                 self.tree.insert("", "end", values=(
-                    p.last_update,  
+                    p.last_update,
                     p.code,
                     p.name,
                     p.description,
                     f"${p.unit_price:.2f}",
                     p.quantity,
                     p.warehouse,
-                    "Edit"
+                    "Edit",
+                    "Delete"
                 ))
         except Exception as e:
             messagebox.showerror("Error", f"Error al cargar productos: {e}")
@@ -63,11 +71,16 @@ class InventoryApp(tk.Tk):
             entry = tk.Entry(win)
             entry.grid(row=i, column=1, padx=5, pady=2)
             entries.append(entry)
-
         def save():
             try:
+                id_value = entries[0].get()
+                if not re.match(r"^[A-Za-z0-9]+$", id_value) or len(id_value) < 1:
+                    raise ValueError("El ID debe ser una cadena alfanumérica válida, sin símbolos ni espacios.")
+                ids_db = [p.code for p in self.db.load()]
+                if id_value in ids_db:
+                    raise ValueError(f"El ID '{id_value}' ya existe. Debe ser único.")
                 product = Product(
-                    entries[0].get(),
+                    id_value,
                     entries[1].get(),
                     entries[2].get(),
                     int(entries[3].get()),
@@ -79,63 +92,49 @@ class InventoryApp(tk.Tk):
                 self.refresh_table()
                 win.destroy()
             except Exception as e:
-                messagebox.showerror("Error", str(e))
-
+                messagebox.showerror("Error al guardar", str(e))
         tk.Button(win, text="Save", command=save).grid(row=len(labels), column=0, columnspan=2, pady=10)
-#Homosexual
-    def on_double_click(self, event):
-        item_id = self.tree.identify_row(event.y)
-        column = self.tree.identify_column(event.x)
-        if not item_id:
-            return
-        
-        if column == '#7':  
-            item = self.tree.item(item_id)
-            self.edit_product_window(item['values'])
 
     def on_double_click(self, event):
         item_id = self.tree.identify_row(event.y)
         column = self.tree.identify_column(event.x)
         if not item_id:
             return
-        print("DEBUG: clicked column:", column)  
         item = self.tree.item(item_id)
         values = item['values']
-        print("DEBUG: item values on double click:", values)
-      
-        if column == f"#{len(values)}":  
-           
+        col_index = int(column.replace('#','')) - 1
+        if col_index == 7:  # Edit
             self.edit_product_window(values)
+        elif col_index == 8:  # Delete
+            self.delete_product(values)
 
-    def edit_product_window(self, product_values): 
+    def edit_product_window(self, product_values):
         win = tk.Toplevel(self)
         win.title("Edit Product")
         labels = ["ID", "Name", "Description", "Quantity", "Unit Price", "Warehouse"]
         entries = []
-
+        original_code = product_values[1]  # Guarda código original
         for i, label in enumerate(labels):
             tk.Label(win, text=label).grid(row=i, column=0, padx=5, pady=2)
             entry = tk.Entry(win)
             entry.grid(row=i, column=1, padx=5, pady=2)
             entries.append(entry)
-
-        entries[0].insert(0, product_values[1])  
+        entries[0].insert(0, original_code)
         entries[0].config(state="readonly")
-        entries[1].insert(0, product_values[2])  
-        entries[2].insert(0, product_values[3])  
-        entries[3].insert(0, product_values[5])  
+        entries[1].insert(0, product_values[2])
+        entries[2].insert(0, product_values[3])
+        entries[3].insert(0, product_values[5])
         unit_price = product_values[4]
         if isinstance(unit_price, str) and unit_price.startswith("$"):
             unit_price = unit_price[1:]
-        entries[4].insert(0, unit_price)         
-        entries[5].insert(0, product_values[6])  
-
+        entries[4].insert(0, unit_price)
+        entries[5].insert(0, product_values[6])
         def save():
             try:
                 updated_product = Product(
-                    entries[0].get(),
+                    original_code,
                     entries[1].get(),
-                    entries[2].get(),  # ahora sí la descripción
+                    entries[2].get(),
                     int(entries[3].get()),
                     float(entries[4].get()),
                     entries[5].get(),
@@ -146,9 +145,19 @@ class InventoryApp(tk.Tk):
                 win.destroy()
             except Exception as e:
                 messagebox.showerror("Error", str(e))
-
         tk.Button(win, text="Save Changes", command=save).grid(row=len(labels), column=0, columnspan=2, pady=10)
 
+    def delete_product(self, product_values):
+        answer = messagebox.askyesno(
+            "Confirm Delete",
+            f"¿Seguro que deseas eliminar el producto '{product_values[2]}' (ID: {product_values[1]})?"
+        )
+        if answer:
+            try:
+                self.db.delete_product(product_values[1])
+                self.refresh_table()
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
 
 
 if __name__ == "__main__":
