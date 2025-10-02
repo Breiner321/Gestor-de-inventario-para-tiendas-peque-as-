@@ -277,3 +277,5 @@ class InventoryApp(tk.Tk):
 if __name__ == "__main__":
     app = InventoryApp()
     app.mainloop()
+
+
