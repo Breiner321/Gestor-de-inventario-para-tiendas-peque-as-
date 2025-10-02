@@ -48,7 +48,3 @@ Este es un proyecto en Python que proporciona una interfaz gráfica para gestion
 - Use el campo de búsqueda para filtrar productos por cualquier campo.
 - Exportar inventario a CSV con el botón "Exportar CSV".
 
-
-[8](https://learn.microsoft.com/es-es/visualstudio/python/python-item-templates?view=vs-2022)
-[9](https://translate.google.com/translate?u=https%3A%2F%2Fwww.makeareadme.com%2F&hl=es&sl=en&tl=es&client=srp)
-[10](https://translate.google.com/translate?u=https%3A%2F%2Fubc-library-rc.github.io%2Frdm%2Fcontent%2F03_create_readme.html&hl=es&sl=en&tl=es&client=srp)
